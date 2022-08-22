@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -19,11 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import com.dyvoker.rippletest.ui.theme.RippleTestTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val itemsCount = 100
+private val stableMutableInteractionSource = MutableInteractionSource()
+private val stableLambda = {}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +40,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Mode of showing clickable/ripple.
                     val rippleMode = remember {
-                        mutableStateOf(RippleMode.DEFAULT_CLICKABLE)
+                        mutableStateOf(RippleMode.NO_CLICKABLE)
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -59,6 +64,11 @@ class MainActivity : ComponentActivity() {
                             isSelected = rippleMode.value == RippleMode.NO_INDICATION,
                             onClick = { rippleMode.value = RippleMode.NO_INDICATION },
                         )
+                        RadioRow(
+                            text = "Nothing but clickable",
+                            isSelected = rippleMode.value == RippleMode.NOTHING_BUT_CLICKABLE,
+                            onClick = { rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE },
+                        )
                     }
                     // List with lags.
                     val lazyState = rememberLazyListState()
@@ -77,25 +87,50 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                    // Button to reproduce identical scroll to bottom and up.
+                    // Button to reproduce identical test for all scrolls.
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             scope.launch {
-                                if (lazyState.firstVisibleItemIndex == 0) {
-                                    lazyState.animateScrollToItem(itemsCount)
-                                } else {
-                                    lazyState.animateScrollToItem(0)
-                                }
+                                runAutoTestAllModes(lazyState, rippleMode)
                             }
                         }
                     ) {
-                        Text(text = "Scroll")
+                        Text(text = "Run full test")
                     }
                 }
             }
         }
     }
+}
+
+private suspend fun runAutoTestAllModes(
+    lazyState: LazyListState,
+    rippleMode: MutableState<RippleMode>, // Bad design, only for simplicity.
+) {
+    // Reset.
+    rippleMode.value = RippleMode.NO_CLICKABLE
+    lazyState.scrollToItem(0)
+
+    rippleMode.value = RippleMode.NO_CLICKABLE
+    makeScroll(lazyState)
+
+    rippleMode.value = RippleMode.DEFAULT_CLICKABLE
+    makeScroll(lazyState)
+
+    rippleMode.value = RippleMode.NO_INDICATION
+    makeScroll(lazyState)
+
+    rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE
+    makeScroll(lazyState)
+}
+
+private suspend fun makeScroll(lazyState: LazyListState) {
+    delay(200L)
+    lazyState.animateScrollToItem(itemsCount)
+    delay(200L)
+    lazyState.animateScrollToItem(0)
+    delay(400L)
 }
 
 /**
@@ -146,7 +181,9 @@ private fun Item(
 private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
     when (rippleMode) {
         RippleMode.NO_CLICKABLE -> {
-            this
+            // Working perfect! No clickable - no lags.
+            // Modifier, just to check that `composed` is not affecting performance.
+            clip(RectangleShape)
         }
         RippleMode.DEFAULT_CLICKABLE -> {
             clickable {}
@@ -156,6 +193,13 @@ private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
                 interactionSource = remember { MutableInteractionSource() },
                 indication = NoIndication,
                 onClick = {},
+            )
+        }
+        RippleMode.NOTHING_BUT_CLICKABLE -> {
+            clickable(
+                interactionSource = stableMutableInteractionSource,
+                indication = NoIndication,
+                onClick = stableLambda,
             )
         }
     }
@@ -185,4 +229,3 @@ private fun RowScope.RadioRow(
         )
     }
 }
-
