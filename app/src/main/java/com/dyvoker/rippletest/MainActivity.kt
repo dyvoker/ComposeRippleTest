@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,6 +22,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.dyvoker.rippletest.ui.theme.RippleTestTheme
 import kotlinx.coroutines.delay
@@ -68,6 +70,15 @@ class MainActivity : ComponentActivity() {
                             text = "Nothing but clickable",
                             isSelected = rippleMode.value == RippleMode.NOTHING_BUT_CLICKABLE,
                             onClick = { rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE },
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        RadioRow(
+                            text = "Gesture",
+                            isSelected = rippleMode.value == RippleMode.GESTURE,
+                            onClick = { rippleMode.value = RippleMode.GESTURE },
                         )
                     }
                     // List with lags.
@@ -122,6 +133,9 @@ private suspend fun runAutoTestAllModes(
     makeScroll(lazyState)
 
     rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE
+    makeScroll(lazyState)
+
+    rippleMode.value = RippleMode.GESTURE
     makeScroll(lazyState)
 }
 
@@ -201,6 +215,14 @@ private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
                 indication = NoIndication,
                 onClick = stableLambda,
             )
+        }
+        RippleMode.GESTURE -> {
+            val interactionSource = remember { MutableInteractionSource() }
+            pointerInput(interactionSource) {
+                detectTapGestures(
+                    onPress = {}
+                )
+            }
         }
     }
 }
