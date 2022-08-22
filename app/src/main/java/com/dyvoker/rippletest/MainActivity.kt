@@ -5,20 +5,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dyvoker.rippletest.ui.theme.RippleTestTheme
+import kotlinx.coroutines.launch
+
+private const val itemsCount = 100
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,34 +33,64 @@ class MainActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    val useClickable = remember { mutableStateOf(false) }
+                    // Mode of showing clickable/ripple.
+                    val rippleMode = remember {
+                        mutableStateOf(RippleMode.DEFAULT_CLICKABLE)
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Switch(
-                            modifier = Modifier.padding(8.dp),
-                            checked = useClickable.value,
-                            onCheckedChange = { useClickable.value = !useClickable.value },
+                        RadioRow(
+                            text = "No clickable",
+                            isSelected = rippleMode.value == RippleMode.NO_CLICKABLE,
+                            onClick = { rippleMode.value = RippleMode.NO_CLICKABLE },
                         )
-                        Text(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .align(Alignment.CenterVertically),
-                            text = "Use clickable"
+                        RadioRow(
+                            text = "Default clickable",
+                            isSelected = rippleMode.value == RippleMode.DEFAULT_CLICKABLE,
+                            onClick = { rippleMode.value = RippleMode.DEFAULT_CLICKABLE },
                         )
                     }
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
-                        repeat(100) {
+                        RadioRow(
+                            text = "No indication",
+                            isSelected = rippleMode.value == RippleMode.NO_INDICATION,
+                            onClick = { rippleMode.value = RippleMode.NO_INDICATION },
+                        )
+                    }
+                    // List with lags.
+                    val lazyState = rememberLazyListState()
+                    val scope = rememberCoroutineScope()
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize(),
+                        state = lazyState,
+                    ) {
+                        repeat(itemsCount) {
                             item {
-                                if (useClickable.value) {
-                                    ItemWithRipple()
+                                Item(
+                                    rippleMode = rippleMode,
+                                )
+                            }
+                        }
+                    }
+                    // Button to reproduce identical scroll to bottom and up.
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            scope.launch {
+                                if (lazyState.firstVisibleItemIndex == 0) {
+                                    lazyState.animateScrollToItem(itemsCount)
                                 } else {
-                                    ItemWithoutRipple()
+                                    lazyState.animateScrollToItem(0)
                                 }
                             }
                         }
+                    ) {
+                        Text(text = "Scroll")
                     }
                 }
             }
@@ -63,57 +98,25 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Some simple layout with clickable (seven).
+ */
 @Composable
-fun ItemWithoutRipple() {
-    Column(
-        modifier = Modifier
-            .padding(4.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(Color.LightGray)
-            .fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-        ) {
-            repeat(4) {
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .height(48.dp)
-                        .weight(0.25f)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(Color.Gray),
-                )
-            }
-        }
-        Box(
-            modifier = Modifier
-                .padding(8.dp)
-                .height(48.dp)
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(Color.Gray),
-        )
-    }
-}
-
-@Composable
-fun ItemWithRipple() {
+private fun Item(
+    rippleMode: State<RippleMode>,
+) {
     Column(
         modifier = Modifier
             .padding(4.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(Color.LightGray)
             .fillMaxWidth()
-            .clickable {},
+            .clickableByMode(rippleMode.value),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {}
-                .padding(4.dp),
+                .clickableByMode(rippleMode.value),
         ) {
             repeat(4) {
                 Box(
@@ -123,7 +126,7 @@ fun ItemWithRipple() {
                         .weight(0.25f)
                         .clip(MaterialTheme.shapes.small)
                         .background(Color.Gray)
-                        .clickable {},
+                        .clickableByMode(rippleMode.value),
                 )
             }
         }
@@ -134,7 +137,51 @@ fun ItemWithRipple() {
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
                 .background(Color.Gray)
-                .clickable {},
+                .clickableByMode(rippleMode.value),
+        )
+    }
+}
+
+@Stable
+private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
+    when (rippleMode) {
+        RippleMode.NO_CLICKABLE -> {
+            this
+        }
+        RippleMode.DEFAULT_CLICKABLE -> {
+            clickable {}
+        }
+        RippleMode.NO_INDICATION -> {
+            clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = NoIndication,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.RadioRow(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .weight(0.5f)
+            .clickable(onClick = onClick),
+    ) {
+        RadioButton(
+            modifier = Modifier.padding(8.dp),
+            selected = isSelected,
+            onClick = null,
+        )
+        Text(
+            modifier = Modifier
+                .padding(8.dp)
+                .align(Alignment.CenterVertically),
+            text = text,
         )
     }
 }
