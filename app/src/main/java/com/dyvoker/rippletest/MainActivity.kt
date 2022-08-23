@@ -217,10 +217,10 @@ private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
             )
         }
         RippleMode.GESTURE -> {
-            val interactionSource = remember { MutableInteractionSource() }
-            pointerInput(interactionSource) {
+            pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = {}
+                    onTap = {},
+                    onLongPress = {},
                 )
             }
         }
