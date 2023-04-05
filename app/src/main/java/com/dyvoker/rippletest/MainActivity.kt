@@ -29,8 +29,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val itemsCount = 100
-private val stableMutableInteractionSource = MutableInteractionSource()
-private val stableLambda = {}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,15 +64,6 @@ class MainActivity : ComponentActivity() {
                             isSelected = rippleMode.value == RippleMode.NO_INDICATION,
                             onClick = { rippleMode.value = RippleMode.NO_INDICATION },
                         )
-                        RadioRow(
-                            text = "Nothing but clickable",
-                            isSelected = rippleMode.value == RippleMode.NOTHING_BUT_CLICKABLE,
-                            onClick = { rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE },
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
                         RadioRow(
                             text = "Gesture",
                             isSelected = rippleMode.value == RippleMode.GESTURE,
@@ -130,9 +119,6 @@ private suspend fun runAutoTestAllModes(
     makeScroll(lazyState)
 
     rippleMode.value = RippleMode.NO_INDICATION
-    makeScroll(lazyState)
-
-    rippleMode.value = RippleMode.NOTHING_BUT_CLICKABLE
     makeScroll(lazyState)
 
     rippleMode.value = RippleMode.GESTURE
@@ -207,13 +193,6 @@ private fun Modifier.clickableByMode(rippleMode: RippleMode) = composed {
                 interactionSource = remember { MutableInteractionSource() },
                 indication = NoIndication,
                 onClick = {},
-            )
-        }
-        RippleMode.NOTHING_BUT_CLICKABLE -> {
-            clickable(
-                interactionSource = stableMutableInteractionSource,
-                indication = NoIndication,
-                onClick = stableLambda,
             )
         }
         RippleMode.GESTURE -> {
