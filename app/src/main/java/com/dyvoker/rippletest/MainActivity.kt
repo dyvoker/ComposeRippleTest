@@ -7,8 +7,13 @@ import android.view.Choreographer.FrameCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -17,7 +22,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -27,7 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-private const val itemsCount = 100
+private const val ItemsCount = 100
 
 class MainActivity : ComponentActivity() {
 
@@ -44,24 +51,23 @@ class MainActivity : ComponentActivity() {
         setContent {
             RippleTestTheme {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.LightGray),
                 ) {
-                    // List with lags.
                     val lazyState = rememberLazyListState()
-                    val scope = rememberCoroutineScope()
                     LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxSize(),
+                        modifier = Modifier.weight(1f),
                         state = lazyState,
                     ) {
-                        repeat(itemsCount) {
-                            item {
-                                Item()
-                            }
+                        items(
+                            count = ItemsCount,
+                        ) {
+                            Item()
                         }
                     }
-                    // Button to reproduce identical test for all scrolls.
+
+                    val scope = rememberCoroutineScope()
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
@@ -141,7 +147,7 @@ private suspend fun runAutoTestAllModes(
 
 private suspend fun makeScroll(lazyState: LazyListState) {
     delay(200L)
-    lazyState.animateScrollToItem(itemsCount)
+    lazyState.animateScrollToItem(ItemsCount)
     delay(200L)
     lazyState.animateScrollToItem(0)
     delay(400L)
@@ -152,39 +158,29 @@ private suspend fun makeScroll(lazyState: LazyListState) {
  */
 @Composable
 private fun Item() {
+    val iconRandomSizeForBugReproduction = remember {
+        (8..48).random().dp
+    }
     Column(
         modifier = Modifier
             .padding(4.dp)
             .clip(MaterialTheme.shapes.medium)
-            .background(Color.LightGray)
-            .fillMaxWidth()
-            .clickable {},
+            .background(Color.White)
+            .fillMaxWidth(),
     ) {
-        Row(
+        KotlinIcon(
             modifier = Modifier
-                .fillMaxWidth()
-                .clickable {},
-        ) {
-            repeat(4) {
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .height(48.dp)
-                        .weight(0.25f)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(Color.Gray)
-                        .clickable {},
-                )
-            }
-        }
+                .align(Alignment.End)
+                .padding(8.dp)
+                .size(iconRandomSizeForBugReproduction),
+        )
         Box(
             modifier = Modifier
                 .padding(8.dp)
-                .height(48.dp)
+                .height(64.dp)
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
-                .background(Color.Gray)
-                .clickable {},
+                .background(Color.LightGray),
         )
     }
 }
