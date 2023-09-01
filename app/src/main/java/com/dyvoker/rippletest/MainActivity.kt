@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.dyvoker.rippletest.ui.theme.RippleTestTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.LightGray),
+                        .background(MaterialTheme.colorScheme.background),
                 ) {
                     val lazyState = rememberLazyListState()
                     LazyColumn(
@@ -71,6 +71,18 @@ class MainActivity : ComponentActivity() {
                     TextButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
+                            scrolling(
+                                scope = scope,
+                                lazyState = lazyState,
+                            )
+                        }
+                    ) {
+                        Text(text = "Press and take screenshot on Xiaomi")
+                    }
+
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
                             scope.launch {
                                 runAutoTestAllModes(
                                     lazyState = lazyState,
@@ -80,7 +92,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     ) {
-                        Text(text = "Run full test")
+                        Text(text = "Run performance test")
                     }
                 }
 
@@ -132,6 +144,18 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun scrolling(
+    scope: CoroutineScope,
+    lazyState: LazyListState,
+) {
+    scope.launch {
+        repeat(10) {
+            lazyState.animateScrollToItem(ItemsCount)
+            lazyState.animateScrollToItem(0)
+        }
+    }
+}
+
 private suspend fun runAutoTestAllModes(
     lazyState: LazyListState,
     resetFrames: () -> Unit,
@@ -158,29 +182,29 @@ private suspend fun makeScroll(lazyState: LazyListState) {
  */
 @Composable
 private fun Item() {
-    val iconRandomSizeForBugReproduction = remember {
-        (8..48).random().dp
-    }
     Column(
         modifier = Modifier
-            .padding(4.dp)
+            .padding(8.dp)
+            .height(256.dp)
+            .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            .background(Color.White)
-            .fillMaxWidth(),
+            .background(MaterialTheme.colorScheme.onBackground),
     ) {
         KotlinIcon(
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(8.dp)
-                .size(iconRandomSizeForBugReproduction),
+                .size(24.dp),
         )
-        Box(
-            modifier = Modifier
-                .padding(8.dp)
-                .height(64.dp)
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(Color.LightGray),
-        )
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.outline),
+            )
+        }
     }
 }
